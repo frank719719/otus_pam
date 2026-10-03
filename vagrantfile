@@ -17,7 +17,8 @@ Vagrant.configure("2") do |config|
       set -e
 
       # Включаем парольную аутентификацию через drop-in (перебивает Include)
-      echo "PasswordAuthentication yes" > /etc/ssh/sshd_config.d/99-enable-password.conf
+      echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+      echo "PasswordAuthentication yes" > /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
       systemctl restart ssh
 
       # Создаём пользователей с домашними каталогами
