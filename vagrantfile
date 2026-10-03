@@ -10,82 +10,96 @@ Vagrant.configure("2") do |config|
     end
 
     # Синхронизация папок
-    srv.vm.synced_folder "./", "/vagrant"
+#    srv.vm.synced_folder "./", "/vagrant"
 
     # Подключение диска
-    srv.vm.disk :disk, size: "1GB", name: "disk1"
-    srv.vm.disk :disk, size: "1GB", name: "disk2"
+#    srv.vm.disk :disk, size: "1GB", name: "disk1"
+#    srv.vm.disk :disk, size: "1GB", name: "disk2"
 
     # Проброс порта для HTTP (будет доступен по localhost:8080)
-    srv.vm.network(:forwarded_port,
-                    guest: 80,
-                    host: 8080,
-                    host_ip: "127.0.0.1")
+#    srv.vm.network(:forwarded_port,
+#                    guest: 80,
+#                    host: 8080,
+#                    host_ip: "127.0.0.1")
 
     # Приватная сеть в той же подсети, что и virbr0 на хосте (192.168.122.0/24)
-    srv.vm.network(:private_network,
+     srv.vm.network(:private_network,
                    ip: "192.168.56.11",
                    auto_config: true)
 
-    # Provisioning - установка Apache
+    # Provisioning - настройка виртуальной машины
     srv.vm.provision "shell", inline: <<-SHELL
+      #Разрешаем подключение пользователей по SSH с использованием пароля
+          sed -i 's/^PasswordAuthentication.*$/PasswordAuthentication yes/' /etc/ssh/sshd_config
+      #Перезапуск службы SSHD
+          systemctl restart sshd.service
+
+      #Создаём пользователя otusadm и otus
+          useradd otusadm && useradd otus 
+      #Создаём пользователям пароли:
+          echo "Otus2022!" | passwd --stdin otusadm && echo "Otus2022!" | passwd --stdin otus
+      #Создаём группу admin
+          sudo groupadd -f admin
+      #Добавляем пользователей vagrant,root и otusadm в группу admin
+          usermod otusadm -a -G admin && usermod root -a -G admin && usermod vagrant -a -G admin
+
       # Ищем добавленные диски (обычно это /dev/sdb и /dev/sdc)
       # Используем `lsblk` для поиска дисков, у которых нет файловой системы
-      DISK1=$(lsblk -dpno NAME | grep -E "/dev/sd[b-c]" | head -n 1)
-      DISK2=$(lsblk -dpno NAME | grep -E "/dev/sd[b-c]" | tail -n 1)
+#      DISK1=$(lsblk -dpno NAME | grep -E "/dev/sd[b-c]" | head -n 1)
+#      DISK2=$(lsblk -dpno NAME | grep -E "/dev/sd[b-c]" | tail -n 1)
 
       # Проверяем, что диски найдены
-      if [ -z "$DISK1" ] || [ -z "$DISK2" ]; then
-      echo "Ошибка: Не удалось найти добавленные диски."
-      exit 1
-      fi
+#      if [ -z "$DISK1" ] || [ -z "$DISK2" ]; then
+#      echo "Ошибка: Не удалось найти добавленные диски."
+#      exit 1
+#      fi
 
       # Форматируем в ext4
-      mkfs.ext4 -F "$DISK1"
-      mkfs.ext4 -F "$DISK2"
+#      mkfs.ext4 -F "$DISK1"
+#      mkfs.ext4 -F "$DISK2"
 
       # Создаем точки монтирования
-      mkdir -p /mnt/disk1
-      mkdir -p /mnt/disk2
+#      mkdir -p /mnt/disk1
+#      mkdir -p /mnt/disk2
 
       # Монтируем диски
-      mount "$DISK1" /mnt/disk1
-      mount "$DISK2" /mnt/disk2
+#      mount "$DISK1" /mnt/disk1
+#      mount "$DISK2" /mnt/disk2
 
       # Добавляем записи в /etc/fstab (используем UUID для надежности)
-      echo "UUID=$(blkid -s UUID -o value "$DISK1") /mnt/disk1 ext4 defaults 0 2" >> /etc/fstab
-      echo "UUID=$(blkid -s UUID -o value "$DISK2") /mnt/disk2 ext4 defaults 0 2" >> /etc/fstab
+#      echo "UUID=$(blkid -s UUID -o value "$DISK1") /mnt/disk1 ext4 defaults 0 2" >> /etc/fstab
+#      echo "UUID=$(blkid -s UUID -o value "$DISK2") /mnt/disk2 ext4 defaults 0 2" >> /etc/fstab
 
       # Проверяем монтирование
-      mount -a
+#      mount -a
       
       # Обновление пакетов
-      sudo apt-get update
+#      sudo apt-get update
       
       # Установка Apache
-      sudo apt-get install -y apache2
+#      sudo apt-get install -y apache2
       
       # Отключаем стандартную папку /var/www/html
-      sudo a2dissite 000-default.conf
+#      sudo a2dissite 000-default.conf
       
       # Создаем конфигурацию для нашего сайта
-      echo "<VirtualHost *:80>
-          DocumentRoot /vagrant
-          <Directory /vagrant>
-              Options Indexes FollowSymLinks
-              AllowOverride All
-              Require all granted
-          </Directory>
-      </VirtualHost>" | sudo tee /etc/apache2/sites-available/vagrant.conf
+#      echo "<VirtualHost *:80>
+#          DocumentRoot /vagrant
+#          <Directory /vagrant>
+#              Options Indexes FollowSymLinks
+#              AllowOverride All
+#              Require all granted
+#          </Directory>
+#      </VirtualHost>" | sudo tee /etc/apache2/sites-available/vagrant.conf
       
       # Включаем наш сайт
-      sudo a2ensite vagrant.conf
+#      sudo a2ensite vagrant.conf
       
       # Включение mod_rewrite
-      sudo a2enmod rewrite
+#      sudo a2enmod rewrite
       
       # Перезапуск Apache
-      sudo systemctl restart apache2
+#      sudo systemctl restart apache2
     SHELL
   end
 end
